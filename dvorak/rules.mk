@@ -4,4 +4,5 @@ CONSOLE_ENABLE = no
 COMMAND_ENABLE = no
 WEBUSB_ENABLE = yes
 ORYX_ENABLE = yes
+AUDIO_ENABLE = yes
 SRC = matrix.c
