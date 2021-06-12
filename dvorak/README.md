@@ -4,6 +4,6 @@ Layout in Spanish designed mainly to avoid fatigue the hands minimizing the disp
 
 This code is based on the result of the [Oryz](https://configure.zsa.io/moonlander) visual generator with some modifications since it is not possible to achieve some things through the GUI:
 
-- Hold down a key with a modifier, mainly to resize the tmux panels by holding down ctrl-b.
+- Hold the U key enable the tmux layer where any key with the exception of the arrow keys are appendend with a tap of Ctrl-B and with the arrow keys Ctrl-B is held.
 
 The latest Oryz Moonlander layout could be found [here](https://configure.zsa.io/moonlander/layouts/yEyKr/latest).
