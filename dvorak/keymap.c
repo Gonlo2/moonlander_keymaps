@@ -44,6 +44,8 @@
 #define BP_NDSH_MAC ALGR(KC_8)
 #define MOON_LED_LEVEL LED_LEVEL
 
+#define TMUX_LAYER 1
+
 enum custom_keycodes {
   RGB_SLD = ML_SAFE_RANGE,
   HSV_0_255_255,
@@ -51,6 +53,11 @@ enum custom_keycodes {
   HSV_172_255_255,
   ES_LSPO,
   ES_RSPC,
+  KC_TMUX_U,
+  KC_TMUX_HLEFT,
+  KC_TMUX_HDOWN,
+  KC_TMUX_HUP,
+  KC_TMUX_HRIGHT,
 };
 
 
@@ -66,7 +73,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   [0] = LAYOUT_moonlander(
     ES_OVRR,        KC_1,           KC_2,           KC_3,           KC_4,           KC_5,           ES_CCED,                                        TD(DANCE_1),    KC_6,           KC_7,           KC_8,           KC_9,           KC_0,           ES_PLUS,        
     ES_DQUO,        KC_DOT,         KC_COMMA,       ES_NTIL,        KC_P,           KC_Y,           ES_ACUT,                                        TD(DANCE_2),    KC_F,           KC_G,           KC_C,           KC_H,           KC_L,           ES_GRV,         
-    KC_LGUI,        LSFT_T(KC_A),   LCTL_T(KC_O),   LALT_T(KC_E),   KC_U,           TD(DANCE_0),    TT(2),                                                                          TD(DANCE_3),    RSFT_T(KC_D),   KC_R,           KC_T,           KC_N,           KC_S,           ES_MINS,        
+    KC_LGUI,        LSFT_T(KC_A),   LCTL_T(KC_O),   LALT_T(KC_E),   KC_TMUX_U,      TD(DANCE_0),    TT(2),                                                                          TD(DANCE_3),    RSFT_T(KC_D),   KC_R,           KC_T,           KC_N,           KC_S,           ES_MINS,        
     ES_APOS,        ES_LESS,        KC_Q,           KC_J,           KC_K,           KC_X,                                           KC_B,           KC_M,           KC_W,           KC_V,           KC_Z,           ES_PIPE,        
     ES_IEXL,        KC_HOME,        KC_PGDOWN,      KC_PGUP,        KC_END,         RALT_T(KC_APPLICATION),                                                                                                LCTL_T(KC_ESCAPE),KC_LEFT,        KC_DOWN,        KC_UP,          KC_RIGHT,       MO(3),          
     KC_SPACE,       KC_BSPACE,      KC_DELETE,                      TD(DANCE_4),    KC_TAB,         KC_ENTER
@@ -76,7 +83,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     KC_TRANSPARENT, KC_TRANSPARENT, KC_TRANSPARENT, KC_TRANSPARENT, KC_TRANSPARENT, KC_TRANSPARENT, KC_TRANSPARENT,                                 KC_TRANSPARENT, KC_TRANSPARENT, KC_TRANSPARENT, KC_TRANSPARENT, KC_TRANSPARENT, KC_TRANSPARENT, KC_TRANSPARENT, 
     KC_TRANSPARENT, KC_Z,           KC_P,           KC_N,           KC_TRANSPARENT, KC_TRANSPARENT, KC_TRANSPARENT,                                                                 KC_TRANSPARENT, KC_TRANSPARENT, KC_LEFT,        KC_DOWN,        KC_UP,          KC_RIGHT,       KC_TRANSPARENT, 
     KC_TRANSPARENT, KC_TRANSPARENT, KC_TRANSPARENT, KC_TRANSPARENT, KC_TRANSPARENT, KC_TRANSPARENT,                                 KC_TRANSPARENT, KC_TRANSPARENT, KC_TRANSPARENT, KC_TRANSPARENT, KC_TRANSPARENT, KC_TRANSPARENT, 
-    KC_TRANSPARENT, KC_TRANSPARENT, KC_TRANSPARENT, KC_TRANSPARENT, KC_TRANSPARENT, KC_TRANSPARENT,                                                                                                 KC_TRANSPARENT, KC_LEFT,        KC_DOWN,        KC_UP,          KC_RIGHT,       KC_TRANSPARENT, 
+    KC_TRANSPARENT, KC_TRANSPARENT, KC_TRANSPARENT, KC_TRANSPARENT, KC_TRANSPARENT, KC_TRANSPARENT,                                                                                                 KC_TRANSPARENT, KC_TMUX_HLEFT,        KC_TMUX_HDOWN,        KC_TMUX_HUP,          KC_TMUX_HRIGHT,       KC_TRANSPARENT, 
     KC_TRANSPARENT, KC_TRANSPARENT, KC_TRANSPARENT,                 KC_TRANSPARENT, KC_TRANSPARENT, KC_TRANSPARENT
   ),
   [2] = LAYOUT_moonlander(
@@ -97,6 +104,24 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   ),
 };
 
+enum tmux_state {
+    TMUX_DISABLED = 0,
+    TMUX_TIMER_RUNNING,
+    TMUX_WAITING_KEY,
+    TMUX_TAPPING,
+    TMUX_HOLDING,
+};
+
+typedef struct {
+    enum tmux_state state;
+    uint16_t timer;
+} tmux_t;
+
+static tmux_t tmux_ctx;
+
+bool tmux_handle(uint16_t keycode, keyrecord_t *record);
+bool tmux_hold(uint16_t keycode, keyrecord_t *record);
+void tmux_tap(uint16_t keycode, keyrecord_t *record);
 
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
   switch (keycode) {
@@ -129,8 +154,85 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
         rgblight_sethsv(172,255,255);
       }
       return false;
+    case KC_TMUX_U:
+      return tmux_handle(KC_U, record);
+    case KC_TMUX_HLEFT:
+      return tmux_hold(KC_LEFT, record);
+    case KC_TMUX_HDOWN:
+      return tmux_hold(KC_DOWN, record);
+    case KC_TMUX_HUP:
+      return tmux_hold(KC_UP, record);
+    case KC_TMUX_HRIGHT:
+      return tmux_hold(KC_RIGHT, record);
   }
+
+  // All the holding keys are already processed so any other kind of key must be a tapping one
+  if ((tmux_ctx.state >= TMUX_WAITING_KEY) && IS_KEY(keycode)) {
+    tmux_tap(keycode, record);
+  }
+
   return true;
+}
+
+bool tmux_handle(uint16_t keycode, keyrecord_t *record) {
+    if (record->event.pressed) {
+        tmux_ctx.state = TMUX_TIMER_RUNNING;
+        tmux_ctx.timer = timer_read();
+    } else {
+        if (tmux_ctx.state == TMUX_TIMER_RUNNING) {
+            tap_code(keycode);
+        } else {
+            // If the tmux key is released without any tapped key tap ctrl-b
+            // to allow use keys with the same hand that held the tmux key
+            if (tmux_ctx.state == TMUX_WAITING_KEY) {
+                tap_code16(LCTL(KC_B));
+            } if (tmux_ctx.state == TMUX_HOLDING) {
+                unregister_code(KC_B);
+                unregister_code(KC_LCTL);
+            }
+            layer_off(TMUX_LAYER);
+        }
+        tmux_ctx.state = TMUX_DISABLED;
+    }
+    return true;
+}
+
+bool tmux_hold(uint16_t keycode, keyrecord_t *record) {
+    if (tmux_ctx.state != TMUX_HOLDING) {
+        tmux_ctx.state = TMUX_HOLDING;
+        register_code(KC_LCTL);
+        register_code(KC_B);
+    }
+    if (record->event.pressed) {
+        register_code(keycode);
+    } else {
+        unregister_code(keycode);
+    }
+    return true;
+}
+
+void tmux_tap(uint16_t keycode, keyrecord_t *record) {
+    if (record->event.pressed) {
+        switch (tmux_ctx.state) {
+            case TMUX_HOLDING:
+                unregister_code(KC_B);
+                unregister_code(KC_LCTL);
+            case TMUX_WAITING_KEY:
+                tmux_ctx.state = TMUX_TAPPING;
+            case TMUX_TAPPING:
+                tap_code16(LCTL(KC_B));
+            default:
+        }
+    }
+}
+
+void matrix_scan_user(void) {
+    if (tmux_ctx.state == TMUX_TIMER_RUNNING) {
+        if (timer_elapsed(tmux_ctx.timer) > TAPPING_TERM) {
+            tmux_ctx.state = TMUX_WAITING_KEY;
+            layer_on(TMUX_LAYER);
+        }
+    }
 }
 
 typedef struct {
