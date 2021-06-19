@@ -49,7 +49,7 @@
 #define TAP_HOLD_ACTION(keycode_tap, keycode_hold) \
     { .keep_hold = false, .state = TH_DISABLED, .kc_tap = keycode_tap, .kc_hold = keycode_hold }
 
-#define TAP_KHOLD_ACTION(keycode_tap, keycode_hold) \
+#define TAP_KEEPHOLD_ACTION(keycode_tap, keycode_hold) \
     { .keep_hold = true, .state = TH_DISABLED, .kc_tap = keycode_tap, .kc_hold = keycode_hold }
 
 enum custom_keycodes {
@@ -72,6 +72,7 @@ enum custom_keycodes {
   TH_CURLY_BRACKETS,
   TH_ROUND_BRACKETS,
   TH_EQUAL_EXCLAMATION,
+  TH_SLASH_HASH,
   TAP_HOLD_END,
 };
 
@@ -81,7 +82,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     ES_OVRR,        KC_1,           KC_2,           KC_3,           KC_4,           KC_5,           ES_CCED,                                        TH_SQUARE_BRACKETS,     KC_6,           KC_7,           KC_8,           KC_9,           KC_0,           ES_PLUS,        
     ES_DQUO,        KC_DOT,         KC_COMMA,       ES_NTIL,        KC_P,           KC_Y,           ES_ACUT,                                        TH_CURLY_BRACKETS,      KC_F,           KC_G,           KC_C,           KC_H,           KC_L,           ES_GRV,         
     KC_LGUI,        LSFT_T(KC_A),   LCTL_T(KC_O),   LALT_T(KC_E),   KC_TMUX_U,      KC_I,    TT(2),                                                 TH_ROUND_BRACKETS,      RSFT_T(KC_D),   KC_R,           KC_T,           KC_N,           KC_S,           ES_MINS,        
-    ES_APOS,        ES_LESS,        KC_Q,           KC_J,           KC_K,           KC_X,                                                           KC_B,                   KC_M,           KC_W,           KC_V,           KC_Z,           TODO,        
+    ES_APOS,        ES_LESS,        KC_Q,           KC_J,           KC_K,           KC_X,                                                           KC_B,                   KC_M,           KC_W,           KC_V,           KC_Z,           TH_SLASH_HASH,        
     ES_IEXL,        KC_HOME,        KC_PGDOWN,      KC_PGUP,        KC_END,         TH_VIMWINDOW_RALT,                                              LCTL_T(KC_ESCAPE),      KC_LEFT,        KC_DOWN,        KC_UP,          KC_RIGHT,       ES_PIPE,
     KC_SPACE,       KC_BSPACE,      KC_DELETE,                                                                                                      TH_EQUAL_EXCLAMATION,   KC_TAB,         KC_ENTER
   ),
@@ -146,11 +147,12 @@ typedef struct {
 } tap_hold_action_t;
 
 static tap_hold_action_t tap_hold_actions[] = {
-    TAP_KHOLD_ACTION(LCTL(KC_W), KC_RALT), // vim window  &  keep right alt
+    TAP_KEEPHOLD_ACTION(LCTL(KC_W), KC_RALT), // vim window  &  keep right alt
     TAP_HOLD_ACTION(RALT(ES_GRV), RALT(ES_PLUS)), // [  &  ]
     TAP_HOLD_ACTION(RALT(ES_ACUT), RALT(ES_CCED)), // {  &  }
     TAP_HOLD_ACTION(LSFT(KC_8), LSFT(KC_9)), // (  &  )
     TAP_HOLD_ACTION(LSFT(KC_0), LSFT(KC_1)), // =  &  !
+    TAP_HOLD_ACTION(LSFT(KC_7), RALT(KC_3)), // /  &  #
 };
 
 void tap_hold_handle(tap_hold_action_t* action, keyrecord_t *record);
