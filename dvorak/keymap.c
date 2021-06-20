@@ -46,11 +46,13 @@
 
 #define TMUX_LAYER 1
 
-#define TAP_HOLD_ACTION(keycode_tap, keycode_hold) \
+#define TH_ACTION(keycode_tap, keycode_hold) \
     { .keep_hold = false, .state = TH_DISABLED, .kc_tap = keycode_tap, .kc_hold = keycode_hold }
 
-#define TAP_KEEPHOLD_ACTION(keycode_tap, keycode_hold) \
+#define TKH_ACTION(keycode_tap, keycode_hold) \
     { .keep_hold = true, .state = TH_DISABLED, .kc_tap = keycode_tap, .kc_hold = keycode_hold }
+
+#define TH_KEY(kc) [kc-TAP_HOLD_START-1]
 
 enum custom_keycodes {
   RGB_SLD = ML_SAFE_RANGE,
@@ -146,13 +148,13 @@ typedef struct {
     uint16_t timer;
 } tap_hold_action_t;
 
-static tap_hold_action_t tap_hold_actions[] = {
-    TAP_KEEPHOLD_ACTION(LCTL(KC_W), KC_RALT), // vim window  &  keep right alt
-    TAP_HOLD_ACTION(RALT(ES_GRV), RALT(ES_PLUS)), // [  &  ]
-    TAP_HOLD_ACTION(RALT(ES_ACUT), RALT(ES_CCED)), // {  &  }
-    TAP_HOLD_ACTION(LSFT(KC_8), LSFT(KC_9)), // (  &  )
-    TAP_HOLD_ACTION(LSFT(KC_0), LSFT(KC_1)), // =  &  !
-    TAP_HOLD_ACTION(LSFT(KC_7), RALT(KC_3)), // /  &  #
+static tap_hold_action_t tap_hold_actions[TAP_HOLD_END-TAP_HOLD_START-1] = {
+    TH_KEY(TH_VIMWINDOW_RALT)    = TKH_ACTION(LCTL(KC_W), KC_RALT), // vim window  &  keep right alt
+    TH_KEY(TH_SQUARE_BRACKETS)   = TH_ACTION(RALT(ES_GRV), RALT(ES_PLUS)), // [  &  ]
+    TH_KEY(TH_CURLY_BRACKETS)    = TH_ACTION(RALT(ES_ACUT), RALT(ES_CCED)), // {  &  }
+    TH_KEY(TH_ROUND_BRACKETS)    = TH_ACTION(LSFT(KC_8), LSFT(KC_9)), // (  &  )
+    TH_KEY(TH_EQUAL_EXCLAMATION) = TH_ACTION(LSFT(KC_0), LSFT(KC_1)), // =  &  !
+    TH_KEY(TH_SLASH_HASH)        = TH_ACTION(LSFT(KC_7), RALT(KC_3)), // /  &  #
 };
 
 void tap_hold_handle(tap_hold_action_t* action, keyrecord_t *record);
