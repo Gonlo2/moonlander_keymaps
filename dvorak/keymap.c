@@ -124,7 +124,7 @@ enum tmux_state {
 
 typedef struct {
     enum tmux_state state;
-    uint16_t timer;
+    uint16_t time;
 } tmux_t;
 
 static tmux_t tmux_ctx = { .state = TMUX_DISABLED };
@@ -145,7 +145,7 @@ typedef struct {
     const uint16_t kc_hold;
     const bool keep_hold;
     enum tap_hold_state state;
-    uint16_t timer;
+    uint16_t time;
 } tap_hold_action_t;
 
 static tap_hold_action_t tap_hold_actions[TAP_HOLD_END-TAP_HOLD_START-1] = {
@@ -226,7 +226,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
 void tmux_handle(uint16_t keycode, keyrecord_t *record) {
     if (record->event.pressed) {
         tmux_ctx.state = TMUX_TIMER_RUNNING;
-        tmux_ctx.timer = timer_read();
+        tmux_ctx.time = record->event.time;
     } else {
         if (tmux_ctx.state == TMUX_TIMER_RUNNING) {
             tap_code(keycode);
@@ -276,7 +276,7 @@ void tmux_tap(uint16_t keycode, keyrecord_t *record) {
 void tap_hold_handle(tap_hold_action_t* action, keyrecord_t *record) {
     if (record->event.pressed) {
         action->state = TH_TAPPING;
-        action->timer = timer_read();
+        action->time = record->event.time;
     } else {
         if (action->state == TH_TAPPING) {
             tap_code16(action->kc_tap);
@@ -289,7 +289,7 @@ void tap_hold_handle(tap_hold_action_t* action, keyrecord_t *record) {
 
 void matrix_scan_user(void) {
     if (tmux_ctx.state == TMUX_TIMER_RUNNING) {
-        if (timer_elapsed(tmux_ctx.timer) > TAPPING_TERM) {
+        if (timer_elapsed(tmux_ctx.time) > TAPPING_TERM) {
             tmux_ctx.state = TMUX_WAITING_KEY;
             layer_on(TMUX_LAYER);
         }
@@ -297,7 +297,7 @@ void matrix_scan_user(void) {
 
     for (uint8_t i = 0; i < TAP_HOLD_END-TAP_HOLD_START-1; ++i) {
         tap_hold_action_t* action = &tap_hold_actions[i];
-        if ((action->state == TH_TAPPING) && (timer_elapsed(action->timer) > TAPPING_TERM)) {
+        if ((action->state == TH_TAPPING) && (timer_elapsed(action->time) > TAPPING_TERM)) {
             action->state = TH_HOLDING;
             if (action->keep_hold) {
                 register_code(action->kc_hold);
