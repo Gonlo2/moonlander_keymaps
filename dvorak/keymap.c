@@ -75,13 +75,14 @@ enum custom_keycodes {
   TH_ROUND_BRACKETS,
   TH_EQUAL_EXCLAMATION,
   TH_SLASH_HASH,
+  TH_AT_TILDE,
   TAP_HOLD_END,
 };
 
 
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   [0] = LAYOUT_moonlander(
-    ES_BSLS,        KC_1,           KC_2,           KC_3,           KC_4,           KC_5,           TODO,                                           TH_SQUARE_BRACKETS,     KC_6,           KC_7,           KC_8,           KC_9,           KC_0,           ES_PLUS,
+    ES_BSLS,        KC_1,           KC_2,           KC_3,           KC_4,           KC_5,           TH_AT_TILDE,                                    TH_SQUARE_BRACKETS,     KC_6,           KC_7,           KC_8,           KC_9,           KC_0,           ES_PLUS,
     ES_DQUO,        KC_DOT,         KC_COMMA,       ES_NTIL,        KC_P,           KC_Y,           TH_SLASH_HASH,                                  TH_CURLY_BRACKETS,      KC_F,           KC_G,           KC_C,           KC_H,           KC_L,           ES_GRV,
     KC_LGUI,        LSFT_T(KC_A),   LCTL_T(KC_O),   LALT_T(KC_E),   KC_TMUX_U,      KC_I,           TT(2),                                          TH_ROUND_BRACKETS,      RSFT_T(KC_D),   KC_R,           KC_T,           KC_N,           KC_S,           ES_MINS,
     ES_APOS,        ES_LESS,        KC_Q,           KC_J,           KC_K,           KC_X,                                                                                   KC_B,           KC_M,           KC_W,           KC_V,           KC_Z,           ES_ACUT,
@@ -155,6 +156,7 @@ static tap_hold_action_t tap_hold_actions[TAP_HOLD_END-TAP_HOLD_START-1] = {
     TH_KEY(TH_ROUND_BRACKETS)    = TH_ACTION(LSFT(KC_8), LSFT(KC_9)), // (  &  )
     TH_KEY(TH_EQUAL_EXCLAMATION) = TH_ACTION(LSFT(KC_0), LSFT(KC_1)), // =  &  !
     TH_KEY(TH_SLASH_HASH)        = TH_ACTION(LSFT(KC_7), RALT(KC_3)), // /  &  #
+    TH_KEY(TH_AT_TILDE)          = TH_ACTION(RALT(KC_2), RALT(KC_4)), // @  &  ~
 };
 
 void tap_hold_handle(tap_hold_action_t* action, keyrecord_t *record);
