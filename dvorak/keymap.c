@@ -369,3 +369,33 @@ void matrix_scan_user(void) {
         }
     }
 }
+
+layer_state_t layer_state_set_user(layer_state_t state) {
+    // 29 - 30 - 31 --- 65 - 66 - 67
+    // 22 - 27 - 31 - 4
+    if (layer_state_cmp(state, TMUX_LAYER)) {
+        rgb_matrix_set_color(29, 0x00, 0x00, 0xff);
+    } else {
+        rgb_matrix_set_color(29, 0x00, 0x00, 0x00);
+    }
+
+    if (layer_state_cmp(state, SYMBOLS_LAYER)) {
+        rgb_matrix_set_color(30, 0x00, 0xff, 0x00);
+    } else {
+        rgb_matrix_set_color(30, 0x00, 0x00, 0x00);
+    }
+
+    if (layer_state_cmp(state, EXTRA_LAYER)) {
+        rgb_matrix_set_color(31, 0xff, 0x00, 0x00);
+    } else {
+        rgb_matrix_set_color(31, 0x00, 0x00, 0x00);
+    }
+
+    if (layer_state_cmp(state, OTHER_LAYER)) {
+        rgb_matrix_set_color(65, 0xff, 0xb8, 0x00);
+    } else {
+        rgb_matrix_set_color(65, 0x00, 0x00, 0x00);
+    }
+
+    return state;
+}
