@@ -45,10 +45,13 @@
 #define MOON_LED_LEVEL LED_LEVEL
 
 #define TH_ACTION(keycode_tap, keycode_hold) \
-    { .keep_hold = false, .state = TH_DISABLED, .kc_tap = keycode_tap, .kc_hold = keycode_hold }
+    { .hold_behavior = HOLD_TAP, .state = TH_DISABLED, .kc_tap = keycode_tap, .kc_hold = keycode_hold }
 
 #define TKH_ACTION(keycode_tap, keycode_hold) \
-    { .keep_hold = true, .state = TH_DISABLED, .kc_tap = keycode_tap, .kc_hold = keycode_hold }
+    { .hold_behavior = HOLD_KEEP, .state = TH_DISABLED, .kc_tap = keycode_tap, .kc_hold = keycode_hold }
+
+#define TLH_ACTION(keycode_tap, layer) \
+    { .hold_behavior = HOLD_LAYER, .state = TH_DISABLED, .kc_tap = keycode_tap, .kc_hold = layer }
 
 #define TH_KEY(kc) [kc-TAP_HOLD_START-1]
 
@@ -76,6 +79,9 @@ enum custom_keycodes {
   // Tap-hold section
   TAP_HOLD_START,
   TH_VIMWINDOW_RALT,
+  TH_O_LCTL,
+  TH_E_LALT,
+  TH_I_SYMBOLS,
   TAP_HOLD_END,
 };
 
@@ -83,11 +89,11 @@ enum custom_keycodes {
 
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   [DVORAK_LAYER] = LAYOUT_moonlander(
-    ES_OVRR,        KC_1,           KC_2,           KC_3,           KC_4,           KC_5,           ES_HASH,                                        ES_CIRC,        KC_6,           KC_7,           KC_8,           KC_9,           KC_0,           ES_PLUS,        
-    ES_APOS,        KC_DOT,         KC_COMMA,       ES_NTIL,        KC_P,           KC_Y,           ES_AT,                                          ES_ASTR,        KC_F,           KC_G,           KC_C,           KC_H,           KC_L,           ES_GRV,         
-    KC_LGUI,        LSFT_T(KC_A),   LCTL_T(KC_O),   LALT_T(KC_E),   KC_TMUX_U,      LT(2,KC_I),     TT(3),                                                                          ES_SLSH,        RSFT_T(KC_D),   KC_R,           KC_T,           KC_N,           KC_S,           ES_UNDS,        
-    ES_DQUO,        ES_LESS,        KC_Q,           KC_J,           KC_K,           KC_X,                                           KC_B,           KC_M,           KC_W,           KC_V,           KC_Z,           ES_ACUT,        
-    MO(4),          KC_HOME,        KC_PGDOWN,      KC_PGUP,        KC_END,         TH_VIMWINDOW_RALT,                                                                                                LCTL_T(KC_ESCAPE),KC_LEFT,        KC_DOWN,        KC_UP,          KC_RIGHT,       ES_MINS,        
+    ES_OVRR,        KC_1,           KC_2,           KC_3,           KC_4,           KC_5,           ES_HASH,                                        ES_CIRC,        KC_6,           KC_7,           KC_8,           KC_9,           KC_0,           ES_PLUS,
+    ES_APOS,        KC_DOT,         KC_COMMA,       ES_NTIL,        KC_P,           KC_Y,           ES_AT,                                          ES_ASTR,        KC_F,           KC_G,           KC_C,           KC_H,           KC_L,           ES_GRV,
+    KC_LGUI,        LSFT_T(KC_A),   TH_O_LCTL,      TH_E_LALT,      KC_TMUX_U,      TH_I_SYMBOLS,   TT(3),                                                                          ES_SLSH,        RSFT_T(KC_D),   KC_R,           KC_T,           KC_N,           KC_S,           ES_UNDS,
+    ES_DQUO,        ES_LESS,        KC_Q,           KC_J,           KC_K,           KC_X,                                           KC_B,           KC_M,           KC_W,           KC_V,           KC_Z,           ES_ACUT,
+    MO(4),          KC_HOME,        KC_PGDOWN,      KC_PGUP,        KC_END,         TH_VIMWINDOW_RALT,                                                                                                LCTL_T(KC_ESCAPE),KC_LEFT,        KC_DOWN,        KC_UP,          KC_RIGHT,       ES_MINS,
     KC_SPACE,       KC_BSPACE,      KC_DELETE,                      ES_EQL,         KC_TAB,         KC_ENTER
   ),
   [TMUX_LAYER] = LAYOUT_moonlander(
@@ -150,22 +156,54 @@ enum tap_hold_state {
     TH_HOLDING,
 };
 
+enum hold_behavior {
+    HOLD_TAP = 0,
+    HOLD_KEEP,
+    HOLD_LAYER,
+};
+
 typedef struct {
     const uint16_t kc_tap;
     const uint16_t kc_hold;
-    const bool keep_hold;
+    const enum hold_behavior hold_behavior;
     enum tap_hold_state state;
     uint16_t time;
 } tap_hold_action_t;
 
 static tap_hold_action_t tap_hold_actions[TAP_HOLD_END-TAP_HOLD_START-1] = {
-    TH_KEY(TH_VIMWINDOW_RALT)    = TKH_ACTION(LCTL(KC_W), KC_RALT), // vim window  &  keep right alt
+    TH_KEY(TH_VIMWINDOW_RALT) = TKH_ACTION(LCTL(KC_W), KC_RALT), // vim window  &  keep right alt
+    TH_KEY(TH_O_LCTL)         = TKH_ACTION(KC_O, KC_LCTL), // o  &  keep right ctrl
+    TH_KEY(TH_E_LALT)         = TKH_ACTION(KC_E, KC_LALT), // e  &  keep right alt
+    TH_KEY(TH_I_SYMBOLS)      = TLH_ACTION(KC_I, SYMBOLS_LAYER), // i  &  symbols layer
 };
 
 void tap_hold_handle(tap_hold_action_t* action, keyrecord_t *record);
 
+float shift_blocked_song[][2] = SONG(CAPS_LOCK_OFF_SOUND);
+
+bool check_valid_shift_key(uint16_t keycode, keyrecord_t *record, bool play_sound);
+
+bool check_valid_shift_key(uint16_t keycode, keyrecord_t *record, bool play_sound) {
+  if (IS_KEY(keycode) && (get_mods() != 0) && ((get_mods() & MOD_MASK_SHIFT) == get_mods())) {
+    bool is_left_keyboard = record->event.key.row < 6;
+    bool pressed_lshift = (get_mods() & MOD_BIT(KC_LSHIFT)) == MOD_BIT(KC_LSHIFT);
+    bool pressed_rshift = (get_mods() & MOD_BIT(KC_RSHIFT)) == MOD_BIT(KC_RSHIFT);
+    if ((is_left_keyboard && pressed_lshift) || (!is_left_keyboard && pressed_rshift)) {
+      if (play_sound) {
+        PLAY_SONG(shift_blocked_song);
+      }
+      return false;
+    }
+  }
+  return true;
+}
 
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
+  // Block the shift usage for the keys in the same hand
+  if (!check_valid_shift_key(keycode, record, record->event.pressed)) {
+    return false;
+  }
+
   // Check if the key is a tmux one
   switch (keycode) {
     case KC_TMUX_U:
@@ -234,7 +272,9 @@ void tmux_handle(uint16_t keycode, keyrecord_t *record) {
         tmux_ctx.time = record->event.time;
     } else {
         if (tmux_ctx.state == TMUX_TIMER_RUNNING) {
-            tap_code(keycode);
+            if (check_valid_shift_key(keycode, record, true)) {
+                tap_code(keycode);
+            }
         } else {
             // If the tmux key is released without any tapped key tap ctrl-b
             // to allow use keys with the same hand that held the tmux key
@@ -284,9 +324,20 @@ void tap_hold_handle(tap_hold_action_t* action, keyrecord_t *record) {
         action->time = record->event.time;
     } else {
         if (action->state == TH_TAPPING) {
-            tap_code16(action->kc_tap);
-        } else if ((action->state == TH_HOLDING) && action->keep_hold) {
-            unregister_code(action->kc_hold);
+            if (check_valid_shift_key(action->kc_tap, record, true)) {
+                tap_code16(action->kc_tap);
+            }
+        } else if (action->state == TH_HOLDING) {
+            switch (action->hold_behavior) {
+                case HOLD_TAP:
+                    break;
+                case HOLD_KEEP:
+                    unregister_code(action->kc_hold);
+                    break;
+                case HOLD_LAYER:
+                    layer_off(action->kc_hold);
+                    break;
+            }
         }
         action->state = TH_DISABLED;
     }
@@ -304,10 +355,16 @@ void matrix_scan_user(void) {
         tap_hold_action_t* action = &tap_hold_actions[i];
         if ((action->state == TH_TAPPING) && (timer_elapsed(action->time) > TAPPING_TERM)) {
             action->state = TH_HOLDING;
-            if (action->keep_hold) {
-                register_code(action->kc_hold);
-            } else {
-                tap_code16(action->kc_hold);
+            switch (action->hold_behavior) {
+                case HOLD_TAP:
+                    tap_code16(action->kc_hold);
+                    break;
+                case HOLD_KEEP:
+                    register_code(action->kc_hold);
+                    break;
+                case HOLD_LAYER:
+                    layer_on(action->kc_hold);
+                    break;
             }
         }
     }
