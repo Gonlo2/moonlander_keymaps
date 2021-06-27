@@ -147,7 +147,7 @@ static tmux_t tmux_ctx = { .state = TMUX_DISABLED };
 
 void tmux_handle(uint16_t keycode, keyrecord_t *record);
 void tmux_hold(uint16_t keycode, keyrecord_t *record);
-void tmux_tap(uint16_t keycode, keyrecord_t *record);
+void tmux_pre_tap(uint16_t keycode, keyrecord_t *record);
 
 
 enum tap_hold_state {
@@ -239,7 +239,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
   else if (keycode == KC_TMUX_HUP   ) tmux_hold(KC_UP, record);
   else if (keycode == KC_TMUX_HRIGHT) tmux_hold(KC_RIGHT, record);
   // All the holding keys are already processed so any other kind of key must be a tapping one
-  else if ((tmux_ctx.state >= TMUX_WAITING_KEY) && IS_KEY(keycode)) tmux_tap(keycode, record);
+  else if ((tmux_ctx.state >= TMUX_WAITING_KEY) && IS_KEY(keycode)) tmux_pre_tap(keycode, record);
 
   switch (keycode) {
     case ES_LSPO:
@@ -316,7 +316,7 @@ void tmux_hold(uint16_t keycode, keyrecord_t *record) {
     }
 }
 
-void tmux_tap(uint16_t keycode, keyrecord_t *record) {
+void tmux_pre_tap(uint16_t keycode, keyrecord_t *record) {
     if (record->event.pressed) {
         switch (tmux_ctx.state) {
             case TMUX_HOLDING:
