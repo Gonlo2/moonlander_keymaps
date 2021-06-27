@@ -198,11 +198,41 @@ bool check_valid_shift_key(uint16_t keycode, keyrecord_t *record, bool play_soun
   return true;
 }
 
+void check_timers(uint16_t term);
+
+void check_timers(uint16_t term) {
+    if (tmux_ctx.state == TMUX_TIMER_RUNNING) {
+        if (timer_elapsed(tmux_ctx.time) > term) {
+            tmux_ctx.state = TMUX_WAITING_KEY;
+            layer_on(TMUX_LAYER);
+        }
+    }
+
+    for (uint8_t i = 0; i < TAP_HOLD_END-TAP_HOLD_START-1; ++i) {
+        tap_hold_action_t* action = &tap_hold_actions[i];
+        if ((action->state == TH_TAPPING) && (timer_elapsed(action->time) > term)) {
+            action->state = TH_HOLDING;
+            switch (action->hold_behavior) {
+                case HOLD_TAP:
+                    tap_code16(action->kc_hold);
+                    break;
+                case HOLD_KEEP:
+                    register_code(action->kc_hold);
+                    break;
+                case HOLD_LAYER:
+                    layer_on(action->kc_hold);
+                    break;
+            }
+        }
+    }
+}
+
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
   // Block the shift usage for the keys in the same hand
-  if (!check_valid_shift_key(keycode, record, record->event.pressed)) {
-    return false;
-  }
+  if (!check_valid_shift_key(keycode, record, record->event.pressed)) return false;
+
+  // If some tap hold is on hold and another key is pressed we change his state to held
+  if (record->event.pressed) check_timers(0);
 
   // Check if the key is a tmux one
   switch (keycode) {
@@ -344,30 +374,7 @@ void tap_hold_handle(tap_hold_action_t* action, keyrecord_t *record) {
 }
 
 void matrix_scan_user(void) {
-    if (tmux_ctx.state == TMUX_TIMER_RUNNING) {
-        if (timer_elapsed(tmux_ctx.time) > TAPPING_TERM) {
-            tmux_ctx.state = TMUX_WAITING_KEY;
-            layer_on(TMUX_LAYER);
-        }
-    }
-
-    for (uint8_t i = 0; i < TAP_HOLD_END-TAP_HOLD_START-1; ++i) {
-        tap_hold_action_t* action = &tap_hold_actions[i];
-        if ((action->state == TH_TAPPING) && (timer_elapsed(action->time) > TAPPING_TERM)) {
-            action->state = TH_HOLDING;
-            switch (action->hold_behavior) {
-                case HOLD_TAP:
-                    tap_code16(action->kc_hold);
-                    break;
-                case HOLD_KEEP:
-                    register_code(action->kc_hold);
-                    break;
-                case HOLD_LAYER:
-                    layer_on(action->kc_hold);
-                    break;
-            }
-        }
-    }
+    check_timers(TAPPING_TERM);
 }
 
 layer_state_t layer_state_set_user(layer_state_t state) {
