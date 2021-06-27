@@ -184,18 +184,24 @@ float shift_blocked_song[][2] = SONG(CAPS_LOCK_OFF_SOUND);
 bool check_valid_shift_key(uint16_t keycode, keyrecord_t *record, bool play_sound);
 
 bool check_valid_shift_key(uint16_t keycode, keyrecord_t *record, bool play_sound) {
-  if (IS_KEY(keycode) && (get_mods() != 0) && ((get_mods() & MOD_MASK_SHIFT) == get_mods())) {
-    bool is_left_keyboard = record->event.key.row < 6;
-    bool pressed_lshift = (get_mods() & MOD_BIT(KC_LSHIFT)) == MOD_BIT(KC_LSHIFT);
-    bool pressed_rshift = (get_mods() & MOD_BIT(KC_RSHIFT)) == MOD_BIT(KC_RSHIFT);
-    if ((is_left_keyboard && pressed_lshift) || (!is_left_keyboard && pressed_rshift)) {
-      if (play_sound) {
-        PLAY_SONG(shift_blocked_song);
-      }
-      return false;
+    uint8_t mods = get_mods();
+    uint8_t row = record->event.key.row;
+    // do the ckeck only if
+    // - the keycode is key
+    // - only the shift mod is enabled
+    // - the key pressed isn't on the thumb platform
+    if (IS_KEY(keycode) && mods && ((mods & MOD_MASK_SHIFT) == mods) && (row != 5) && (row != 11)) {
+        bool is_left_keyboard = row < 6;
+        bool pressed_lshift = (mods & MOD_BIT(KC_LSHIFT)) == MOD_BIT(KC_LSHIFT);
+        bool pressed_rshift = (mods & MOD_BIT(KC_RSHIFT)) == MOD_BIT(KC_RSHIFT);
+        if ((is_left_keyboard && pressed_lshift) || (!is_left_keyboard && pressed_rshift)) {
+            if (play_sound) {
+                PLAY_SONG(shift_blocked_song);
+            }
+            return false;
+        }
     }
-  }
-  return true;
+    return true;
 }
 
 void check_timers(uint16_t term);
