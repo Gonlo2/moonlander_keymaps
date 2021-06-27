@@ -218,17 +218,9 @@ void check_timers(uint16_t term) {
         tap_hold_action_t* action = &tap_hold_actions[i];
         if ((action->state == TH_TAPPING) && (timer_elapsed(action->time) > term)) {
             action->state = TH_HOLDING;
-            switch (action->hold_behavior) {
-                case HOLD_TAP:
-                    tap_code16(action->kc_hold);
-                    break;
-                case HOLD_KEEP:
-                    register_code(action->kc_hold);
-                    break;
-                case HOLD_LAYER:
-                    layer_on(action->kc_hold);
-                    break;
-            }
+            if      (action->hold_behavior == HOLD_TAP  ) tap_code16(action->kc_hold);
+            else if (action->hold_behavior == HOLD_KEEP ) register_code(action->kc_hold);
+            else if (action->hold_behavior == HOLD_LAYER) layer_on(action->kc_hold);
         }
     }
 }
@@ -241,28 +233,13 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
   if (record->event.pressed) check_timers(0);
 
   // Check if the key is a tmux one
-  switch (keycode) {
-    case KC_TMUX_U:
-      tmux_handle(KC_U, record);
-      break;
-    case KC_TMUX_HLEFT:
-      tmux_hold(KC_LEFT, record);
-      break;
-    case KC_TMUX_HDOWN:
-      tmux_hold(KC_DOWN, record);
-      break;
-    case KC_TMUX_HUP:
-      tmux_hold(KC_UP, record);
-      break;
-    case KC_TMUX_HRIGHT:
-      tmux_hold(KC_RIGHT, record);
-      break;
-    default:
-      // All the holding keys are already processed so any other kind of key must be a tapping one
-      if ((tmux_ctx.state >= TMUX_WAITING_KEY) && IS_KEY(keycode)) {
-        tmux_tap(keycode, record);
-      }
-  }
+  if      (keycode == KC_TMUX_U     ) tmux_handle(KC_U, record);
+  else if (keycode == KC_TMUX_HLEFT ) tmux_hold(KC_LEFT, record);
+  else if (keycode == KC_TMUX_HDOWN ) tmux_hold(KC_DOWN, record);
+  else if (keycode == KC_TMUX_HUP   ) tmux_hold(KC_UP, record);
+  else if (keycode == KC_TMUX_HRIGHT) tmux_hold(KC_RIGHT, record);
+  // All the holding keys are already processed so any other kind of key must be a tapping one
+  else if ((tmux_ctx.state >= TMUX_WAITING_KEY) && IS_KEY(keycode)) tmux_tap(keycode, record);
 
   switch (keycode) {
     case ES_LSPO:
@@ -364,16 +341,8 @@ void tap_hold_handle(tap_hold_action_t* action, keyrecord_t *record) {
                 tap_code16(action->kc_tap);
             }
         } else if (action->state == TH_HOLDING) {
-            switch (action->hold_behavior) {
-                case HOLD_TAP:
-                    break;
-                case HOLD_KEEP:
-                    unregister_code(action->kc_hold);
-                    break;
-                case HOLD_LAYER:
-                    layer_off(action->kc_hold);
-                    break;
-            }
+            if      (action->hold_behavior == HOLD_KEEP ) unregister_code(action->kc_hold);
+            else if (action->hold_behavior == HOLD_LAYER) layer_off(action->kc_hold);
         }
         action->state = TH_DISABLED;
     }
